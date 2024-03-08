@@ -1,3 +1,5 @@
+
+
 #|
 
 initialise SDL at startup
@@ -9,6 +11,8 @@ how draw a circle ?  infinite sided polygon
 
 how do we fill polygon with fill colours ?? 
 how do we check if mouse pointer is inside polygon - highlight it - move it -
+
+mouse pointer position
 
 |#
 
@@ -68,6 +72,11 @@ how do we check if mouse pointer is inside polygon - highlight it - move it -
 
 (define color-red-1 #f)
 (define color-red-2 #f)
+
+;;------------------------------------------------------
+(define mouse-x 0)
+(define mouse-y 0)
+
 
 ;; --------- a simple red box --------------------------
 (define red-box #(0 0 50 50))
@@ -136,6 +145,42 @@ how do we check if mouse pointer is inside polygon - highlight it - move it -
     ((quit)
      (exit-main-loop! #t))
 
+    ;; mouse button pressed
+    ((mouse-button-down)
+     (let ((x (sdl2:mouse-button-event-x ev))
+	   (y (sdl2:mouse-button-event-y ev))
+	   (button (sdl2:mouse-button-event-button ev))
+	   )
+       (format #t "mouse button down (~a ,~a) : button ~a ~%" x y button))
+     #t)
+
+    ;; mouse button released
+    ((mouse-button-up)
+     (let ((x (sdl2:mouse-button-event-x ev))
+	   (y (sdl2:mouse-button-event-y ev))
+	   (button (sdl2:mouse-button-event-button ev)))
+       (format #t "mouse button up (~a ,~a) : button ~a ~%" x y button))     
+     #t)
+
+    
+    ;; mouse motion
+    ((mouse-motion)
+     (let ((x (sdl2:mouse-motion-event-x ev))
+	   (y (sdl2:mouse-motion-event-y ev)))
+       (set! mouse-x x)
+       (set! mouse-y y)
+       ;;(format #t "mouse position (~a ,~a) ~%" x y))
+       (redraw)
+     #t))
+
+    ((mouse-wheel)
+     (let ((x (sdl2:mouse-wheel-event-x ev))
+	   (y (sdl2:mouse-wheel-event-y ev)))
+       (format #t "mouse wheel scroll (~a ,~a) ~%" x y))
+     #t)
+
+    
+
     ;; Keyboard key pressed
     ((key-down)
      (let ((shift? (memq 'shift (sdl2:keyboard-event-mod ev)))
@@ -186,6 +231,7 @@ how do we check if mouse pointer is inside polygon - highlight it - move it -
           ;;(full-rerender!)
 	  )
 
+	 
          ;; ;; Number row keys switch palettes
          ;; ((n-1)  (when (switch-palette! 0) (refresh!)))
          ;; ((n-2)  (when (switch-palette! 1) (refresh!)))
@@ -226,10 +272,11 @@ how do we check if mouse pointer is inside polygon - highlight it - move it -
 
 
 
+
 (define (create-window)
   (let ((width 1920) ;;1920)
 	(height 1080) ;;1080)
-	;;(flags '(resizable fullscreen))
+	;;(flags '(resizable ))
 	(flags '(resizable fullscreen))
 	)
     (set! window (sdl2:create-window! "Hello, World!" 0 0 width height flags))
@@ -493,38 +540,40 @@ orientation could be
 	 (set! current-color top)
 	 (set-color! (first top) (second top) (third top) (fourth top))))))
 
-
   
 (define (redraw)  
 
   (set-color! 0 125 255) 
   (clear-screen!)
   (set-color! 255 0 0)
-  
+
+    
   ;; (sdl2:render-fill-rect! renderer (sdl2:make-rect 0 0 255 255))
   ;; (sdl2:render-draw-rect! renderer (sdl2:make-rect 255 0 255 255))
   ;; (sdl2:render-draw-line! renderer 255 0 (+ 255 255) 255)  
   ;; (sdl2:render-draw-color-set! renderer (sdl2:make-color 0 0 255))
   ;; (sdl2:render-fill-rect! renderer (sdl2:make-rect (arr1-get red-box) (arr2-get red-box) 50 50))
 
-  ;; (set! text (format #f "hello : ~a , ~a" (arr1-get red-box) (arr2-get red-box)))
-  ;; (define-values (w h) (ttf:size-utf8 font text))
-  ;; (let* ((fore (sdl2:make-color 255 0 0))
-  ;; 	 (back (sdl2:make-color 255 255 255))
-  ;; 	 (text-surface (ttf:render-utf8-shaded
-  ;; 			font
-  ;; 			text
-  ;; 			fore
-  ;; 			back))
-  ;; 	 (text-texture (sdl2:create-texture-from-surface renderer text-surface)))
-  ;;   ;; copy all of the text texture onto the renderer
-  ;;   (let ((src #f)
-  ;; 	  (dest (sdl2:make-rect 0 0 w h)))
-  ;;     (sdl2:render-copy! renderer text-texture src dest))
-  ;;   (let ((src (sdl2:make-rect 0 0 w h))
-  ;; 	  (dest (sdl2:make-rect (arr1-get red-box) (arr2-get red-box) w h)))
-  ;;     (sdl2:render-copy! renderer text-texture src dest))
-  ;;   )
+  ;;(set! text (format #f "hello : ~a , ~a" (arr1-get red-box) (arr2-get red-box)))
+  (set! text (format #f "mouse position ~a , ~a " mouse-x mouse-y))
+  
+  (define-values (w h) (ttf:size-utf8 font text))
+  (let* ((fore (sdl2:make-color 255 0 0))
+	 (back (sdl2:make-color 255 255 255))
+	 (text-surface (ttf:render-utf8-shaded
+			font
+			text
+			fore
+			back))
+	 (text-texture (sdl2:create-texture-from-surface renderer text-surface)))
+    ;; copy all of the text texture onto the renderer
+    (let ((src #f)
+	  (dest (sdl2:make-rect 0 0 w h)))
+      (sdl2:render-copy! renderer text-texture src dest))
+    (let ((src (sdl2:make-rect 0 0 w h))
+	  (dest (sdl2:make-rect (arr1-get red-box) (arr2-get red-box) w h)))
+      (sdl2:render-copy! renderer text-texture src dest))
+    )
 
   ;; ;;
   
@@ -552,6 +601,8 @@ orientation could be
     (septagon radius rot 600 650)
     (octagon radius rot 700 650)
     )
+
+  (line 0 0 mouse-x mouse-y)
   
   ;; finished with renderer - put it to the window
   (sdl2:render-present! renderer)
